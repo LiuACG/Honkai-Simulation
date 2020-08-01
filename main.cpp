@@ -456,17 +456,18 @@ public:
         const bool is_charm = GetAndRefreshCharmState();
 
         status_ ^= 1;
-
-        if (status_ == 0) {
-            const int origin_hit = hit;
-            hit = std::min(100, hit + static_cast<int>(GetRandom() * 14 + 1));
-            def += 5;
-            atk -= 10;
-            LOG("回合%d 希尔转变为白形态，防御力上升了，攻击力下降了，回复了%d点血量\n", round, hit - origin_hit);
-        } else {
-            def -= 5;
-            atk += 10;
-            LOG("回合%d 希尔转变为黑形态，攻击力上升了，防御力下降了\n", round);
+        if (is_charm) {
+            if (status_ == 0) {
+                const int origin_hit = hit;
+                hit = std::min(100, hit + static_cast<int>(GetRandom() * 14 + 1));
+                def += 5;
+                atk -= 10;
+                LOG("回合%d 希尔转变为白形态，防御力上升了，攻击力下降了，回复了%d点血量\n", round, hit - origin_hit);
+            } else {
+                def -= 5;
+                atk += 10;
+                LOG("回合%d 希尔转变为黑形态，攻击力上升了，防御力下降了\n", round);
+            }
         }
 
         if (buff_opponent) {
