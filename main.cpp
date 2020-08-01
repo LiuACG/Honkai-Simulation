@@ -54,8 +54,8 @@ public:
         return hit <= 0 ? AttackResult::DEFENDER_DEAD : AttackResult::ALL_ALIVE;
     }
 
-    virtual AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name, const bool force_hit = false) {
-        const int acc_atk = force_hit || attacker.IsHit() ? atk : 0;
+    virtual AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name) {
+        const int acc_atk = attacker.IsHit() ? atk : 0;
         hit -= acc_atk;
         LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
         return hit <= 0 ? AttackResult::DEFENDER_DEAD : AttackResult::ALL_ALIVE;
@@ -270,8 +270,8 @@ public:
         return Player::DoAtk(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk);
     }
 
-    AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name, const bool force_hit) override {
-        return Player::DoUlt(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk, skill_name, force_hit);
+    AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name) override {
+        return Player::DoUlt(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk, skill_name);
     }
 
 private:
@@ -401,7 +401,7 @@ public:
 
         if (boom_ > 0) {
             --boom_;
-            defender.DoUlt(round, *this, GetRandom() <= 0.5f ? 233 : 50, "变成星星吧！", true);
+            defender.DoUlt(round, *this, GetRandom() <= 0.5f ? 233 : 50, "变成星星吧！");
         }
 
         return defender.DoAtk(round, *this, atk - defender.def);
@@ -425,8 +425,8 @@ public:
         return AttackResult::ALL_ALIVE;
     }
 
-    AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name, const bool force_hit) override {
-        const int acc_atk = force_hit || attacker.IsHit() ? atk : 0;
+    AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name) override {
+        const int acc_atk = attacker.IsHit() ? atk : 0;
         hit -= acc_atk;
         LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
 
@@ -497,7 +497,7 @@ public:
         return defender.DoAtk(round, *this, atk - defender.def);
     }
 
-    AttackResult DoUlt(int round, Player& attacker, const int atk, const std::string& name, const bool force_hit) override {
+    AttackResult DoUlt(int round, Player& attacker, const int atk, const std::string& name) override {
         if (buff_charm == 0 && GetRandom() < 0.16f) {
             attacker.hit -= 30;
             return attacker.hit <= 0 ? AttackResult::ATTACKER_DEAD : AttackResult::ALL_ALIVE;
