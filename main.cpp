@@ -63,7 +63,7 @@ public:
 
     [[nodiscard]] bool IsHit() const { return GetRandom() <= hit_rate; }
 
-    [[nodiscard]] bool RefreshSkillAvailableStatus() {
+    [[nodiscard]] bool GetAndRefreshCharmState() {
         if (buff_charm == 0)
             return true;
         return buff_charm-- == 0;
@@ -90,13 +90,15 @@ public:
     }
 
     AttackResult Attack(const int round, Player& defender) override {
+        const bool is_charm = GetAndRefreshCharmState();
+
         if (buff_self_ || buff_opponent) {
             if (buff_self_) --buff_self_;
             if (buff_opponent) --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
-        if (round % ATK_EVERY_ROUND == 0) {
+        if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             const auto result = defender.DoUlt(round, *this, atk + defender.def, "吃我一矛！");
             if (result != AttackResult::ALL_ALIVE)
                 return result;
@@ -126,12 +128,14 @@ public:
     }
 
     AttackResult Attack(const int round, Player& defender) override {
+        const bool is_charm = GetAndRefreshCharmState();
+
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
-        if (round % ATK_EVERY_ROUND == 0) {
+        if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 5; ++i) {
                 const auto result = defender.DoUlt(round, *this, 3, "雷电家的龙女仆");
                 if (result != AttackResult::ALL_ALIVE)
@@ -142,7 +146,7 @@ public:
             if (result != AttackResult::ALL_ALIVE)
                 return result;
 
-            if (GetRandom() <= 0.3f) {
+            if (!is_charm && GetRandom() <= 0.3f) {
                 LOG("回合%d %s 使用了技能：【崩坏世界的歌姬】麻痹对方一回合\n", round, name.c_str());
                 defender.buff_opponent = 1;
             }
@@ -161,12 +165,14 @@ public:
     }
 
     AttackResult Attack(const int round, Player& defender) override {
+        const bool is_charm = GetAndRefreshCharmState();
+
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
-        if (round % ATK_EVERY_ROUND == 0) {
+        if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             const auto result = defender.DoUlt(round, *this, GetRandom(1, 100), "摩托拜客哒！");
             if (result != AttackResult::ALL_ALIVE)
                 return result;
@@ -175,7 +181,7 @@ public:
             if (result != AttackResult::ALL_ALIVE)
                 return result;
 
-            if (GetRandom() < 0.25f) {
+            if (!is_charm && GetRandom() < 0.25f) {
                 for (int i = 0; i < 4; ++i) {
                     LOG("回合%d %s 使用了技能：【天使重构】\n", round, name.c_str());
                     const auto ex_result = defender.DoAtk(round, *this, 12 - defender.def);
@@ -201,14 +207,16 @@ public:
     }
 
     AttackResult Attack(const int round, Player& defender) override {
+        const bool is_charm = GetAndRefreshCharmState();
+
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
-        const int gan = is_group ? 2 : 1;
+        const int gan = !is_charm && is_group ? 2 : 1;
 
-        if (round % ATK_EVERY_ROUND == 0) {
+        if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             LOG("回合%d %s 使用了技能：【干杯，朋友】攻击力提升了100%%，命中率下降35%%\n", round, name.c_str());
             atk *= 2;
             hit_rate = std::max(0.f, hit_rate - 0.35f);
@@ -223,7 +231,8 @@ private:
 
 class Rita final : public Player {
 public:
-    Rita() : Player(100, 11, 26, 17, "丽塔") {}
+    Rita() : Player(100, 11, 26, 17, "丽塔") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         if (buff_opponent) {
@@ -232,11 +241,15 @@ public:
         }
 
         if (round % ATK_EVERY_ROUND == 0) {
-            LOG("回合%d %s 使用了技能：【完美心意】使 %s 回复了4点血量并陷入两个回合的魅惑阶段，伤害永久减低60%%\n", round, name.c_str(), defender.name.c_str());
+            if (is_skill_activate_) {
+                LOG("回合%d %s 使用了技能：【完美心意】使 %s 回复了4点血量，并陷入两个回合的魅惑阶段\n", round, name.c_str(), defender.name.c_str());
+            } else {
+                LOG("回合%d %s 使用了技能：【完美心意】使 %s 回复了4点血量，并陷入两个回合的魅惑阶段，伤害永久减低60%%\n", round, name.c_str(), defender.name.c_str());
+                is_skill_activate_ = true;
+            }
 
             defender.hit = std::min(100, defender.hit + 4);
             defender.buff_charm = 2;
-            is_skill_activate_ = true;
         } else {
             int current_round_atk = atk;
             if (GetRandom() < 0.35f) {
@@ -254,15 +267,16 @@ public:
     }
 
     AttackResult DoAtk(const int round, Player& attacker, const int atk) override {
-        return Player::DoAtk(round, attacker, is_skill_activate_ ? static_cast<int>(roundf(static_cast<float>(atk) * 0.4f)) : atk);
+        return Player::DoAtk(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk);
     }
 
     AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name, const bool force_hit) override {
-        return Player::DoUlt(round, attacker, is_skill_activate_ ? static_cast<int>(roundf(static_cast<float>(atk) * 0.4f)) : atk, skill_name, force_hit);
+        return Player::DoUlt(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk, skill_name, force_hit);
     }
 
 private:
     enum { ATK_EVERY_ROUND = 4 };
+
     bool is_skill_activate_ = false;
 };
 
@@ -271,17 +285,19 @@ public:
     Sakura() : Player(100, 9, 20, 18, "八重樱&卡莲") {}
 
     AttackResult Attack(const int round, Player& defender) override {
+        const bool is_charm = GetAndRefreshCharmState();
+
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
-        if (GetRandom() <= 0.3f) {
+        if (!is_charm && GetRandom() <= 0.3f) {
             hit = std::min(100, hit + 25);
             LOG("回合%d %s 使用了技能：【八重樱的饭团】吃下了饭团，回复25点血量\n", round, name.c_str());
         }
 
-        if (round % ATK_EVERY_ROUND == 0) {
+        if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             const auto result = defender.DoUlt(round, *this, 25, "卡莲的饭团");
             if (result != AttackResult::ALL_ALIVE)
                 return result;
@@ -303,18 +319,20 @@ public:
     Corvus() : Player(100, 14, 23, 14, "渡鸦") {}
 
     AttackResult Attack(const int round, Player& defender) override {
+        const bool is_charm = GetAndRefreshCharmState();
+
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
         float gan = 1.f;
-        if (dynamic_cast<Kiana*>(&defender) != nullptr || GetRandom() <= 0.25f) {
+        if (!is_charm && (dynamic_cast<Kiana*>(&defender) != nullptr || GetRandom() <= 0.25f)) {
             LOG("回合%d %s 使用了技能：【不是针对你】伤害提升了25%%\n", round, name.c_str());
             gan += 0.25f;
         }
 
-        if (round % ATK_EVERY_ROUND == 0) {
+        if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 7; ++i) {
                 const auto result = defender.DoUlt(round, *this, static_cast<int>(std::round(static_cast<float>(16 - defender.def) * gan)), "别墅小岛");
                 if (result != AttackResult::ALL_ALIVE)
@@ -338,14 +356,14 @@ public:
     Theresa() : Player(100, 12, 19, 22, "德莉莎") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        const bool skill_available = RefreshSkillAvailableStatus();
+        const bool is_charm = GetAndRefreshCharmState();
 
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
-        if (skill_available && round % ATK_EVERY_ROUND == 0) {
+        if (is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 5; ++i) {
                 const auto result = defender.DoUlt(round, *this, 16 - defender.def, "在线踢人");
                 if (result != AttackResult::ALL_ALIVE)
@@ -356,7 +374,7 @@ public:
             if (result != AttackResult::ALL_ALIVE)
                 return result;
 
-            if (skill_available && GetRandom() <= 0.3f) {
+            if (is_charm && GetRandom() <= 0.3f) {
                 LOG("回合%d %s 使用了技能：【血犹大第一可爱】降低了对方5点的防御\n", round, name.c_str());
                 defender.def = std::max(0, defender.def - 5);
             }
@@ -374,6 +392,8 @@ public:
     Olenyeva() : Player(100, 10, 18, 10, "萝莎莉娅&莉莉娅") {}
 
     AttackResult Attack(const int round, Player& defender) override {
+        const bool is_charm = GetAndRefreshCharmState();
+
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
@@ -381,7 +401,9 @@ public:
 
         if (boom_ > 0) {
             --boom_;
-            defender.DoUlt(round, *this, GetRandom() <= 0.5f ? 233 : 50, "变成星星吧！", true);
+            if (!is_charm) {
+                defender.DoUlt(round, *this, GetRandom() <= 0.5f ? 233 : 50, "变成星星吧！", true);
+            }
         }
 
         return defender.DoAtk(round, *this, atk - defender.def);
@@ -433,12 +455,9 @@ public:
     Seele() : Player(100, 13, 23, 26, "希儿") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        status_ ^= 1;
+        const bool is_charm = GetAndRefreshCharmState();
 
-        if (buff_opponent) {
-            --buff_opponent;
-            return AttackResult::ALL_ALIVE;
-        }
+        status_ ^= 1;
 
         if (status_ == 0) {
             const int origin_hit = hit;
@@ -450,6 +469,11 @@ public:
             def -= 5;
             atk += 10;
             LOG("回合%d 希尔转变为黑形态，攻击力上升了，防御力下降了\n", round);
+        }
+
+        if (buff_opponent) {
+            --buff_opponent;
+            return AttackResult::ALL_ALIVE;
         }
 
         return defender.DoAtk(round, *this, atk - defender.def);
@@ -475,7 +499,7 @@ public:
     }
 
     AttackResult DoUlt(int round, Player& attacker, const int atk, const std::string& name, const bool force_hit) override {
-        if (GetRandom() < 0.16f) {
+        if (buff_charm == 0 && GetRandom() < 0.16f) {
             attacker.hit -= 30;
             return attacker.hit <= 0 ? AttackResult::ATTACKER_DEAD : AttackResult::ALL_ALIVE;
         }
@@ -489,12 +513,14 @@ public:
     FuHua() : Player(100, 15, 17, 16, "符华") {}
 
     AttackResult Attack(const int round, Player& defender) override {
+        const bool is_charm = GetAndRefreshCharmState();
+
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
-        if (round % ATK_EVERY_ROUND == 0) {
+        if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             const auto result = defender.DoUlt(round, *this, 18, "形之笔墨");
             if (result != AttackResult::ALL_ALIVE)
                 return result;
