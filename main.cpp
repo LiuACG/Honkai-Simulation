@@ -1,3 +1,4 @@
+#include <atomic>
 #include <iostream>
 #include <random>
 #include <thread>
@@ -550,7 +551,7 @@ Simulation() {
 #if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
     const int times = 1;
 #else
-    const int times = 10000;
+    const int times = 10000000;
 #endif
 
     const auto num_of_character = static_cast<std::underlying_type<Character>::type>(Character::NUM_OF_CHARACTER);
@@ -575,10 +576,11 @@ Simulation() {
             const std::shared_ptr<Player> player_0 = GetPlayer(characters[j]);
             const std::shared_ptr<Player> player_1 = GetPlayer(characters[i]);
 
-            int p0_win = 0;
-            int p1_win = 0;
+            std::atomic<int32_t> p0_win = 0;
+            std::atomic<int32_t> p1_win = 0;
 
             if (player_0->spd > player_1->spd) {
+                #pragma omp parallel for
                 for (int k = 0; k < times; ++k) {
                     std::shared_ptr<Player> p_0 = GetPlayer(characters[j]);
                     std::shared_ptr<Player> p_1 = GetPlayer(characters[i]);
@@ -586,20 +588,21 @@ Simulation() {
                     for (int round = 1;; ++round) {
                         const auto p0_status = p_0->Attack(round, *p_1);
                         if (p0_status != Player::AttackResult::ALL_ALIVE) {
-                            if (p0_status == Player::AttackResult::DEFENDER_DEAD) p0_win++;
-                            if (p0_status == Player::AttackResult::ATTACKER_DEAD) p1_win++;
+                            if (p0_status == Player::AttackResult::DEFENDER_DEAD) ++p0_win;
+                            if (p0_status == Player::AttackResult::ATTACKER_DEAD) ++p1_win;
                             break;
                         }
 
                         const auto p1_status = p_1->Attack(round, *p_0);
                         if (p1_status != Player::AttackResult::ALL_ALIVE) {
-                            if (p1_status == Player::AttackResult::DEFENDER_DEAD) p1_win++;
-                            if (p1_status == Player::AttackResult::ATTACKER_DEAD) p0_win++;
+                            if (p1_status == Player::AttackResult::DEFENDER_DEAD) ++p1_win;
+                            if (p1_status == Player::AttackResult::ATTACKER_DEAD) ++p0_win;
                             break;
                         }
                     }
                 }
             } else {
+                #pragma omp parallel for
                 for (int k = 0; k < times; ++k) {
                     std::shared_ptr<Player> p_0 = GetPlayer(characters[j]);
                     std::shared_ptr<Player> p_1 = GetPlayer(characters[i]);
@@ -607,15 +610,15 @@ Simulation() {
                     for (int round = 1;; ++round) {
                         const auto p1_status = p_1->Attack(round, *p_0);
                         if (p1_status != Player::AttackResult::ALL_ALIVE) {
-                            if (p1_status == Player::AttackResult::DEFENDER_DEAD) p1_win++;
-                            if (p1_status == Player::AttackResult::ATTACKER_DEAD) p0_win++;
+                            if (p1_status == Player::AttackResult::DEFENDER_DEAD) ++p1_win;
+                            if (p1_status == Player::AttackResult::ATTACKER_DEAD) ++p0_win;
                             break;
                         }
 
                         const auto p0_status = p_0->Attack(round, *p_1);
                         if (p0_status != Player::AttackResult::ALL_ALIVE) {
-                            if (p0_status == Player::AttackResult::DEFENDER_DEAD) p0_win++;
-                            if (p0_status == Player::AttackResult::ATTACKER_DEAD) p1_win++;
+                            if (p0_status == Player::AttackResult::DEFENDER_DEAD) ++p0_win;
+                            if (p0_status == Player::AttackResult::ATTACKER_DEAD) ++p1_win;
                             break;
                         }
                     }
