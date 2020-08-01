@@ -73,12 +73,10 @@ public:
     int atk = 0;
     int spd = 0;
 
+    float hit_rate    = 1.f;
+    bool is_group     = false;
     int buff_opponent = 0;
     int buff_charm    = 0;
-
-    bool is_group = false;
-
-    float hit_rate = 1.f;
 };
 
 class Kiana final : public Player {
@@ -434,8 +432,8 @@ public:
         if (is_charm) {
             if (status_ == 0) {
                 const int origin_hit = hit;
-                
-                hit                  = std::min(100, hit + static_cast<int>(GetRandom() * 14 + 1));
+
+                hit = std::min(100, hit + GetRandom(1, 15));
                 def += 5;
                 atk -= 10;
                 LOG("回合%d 希尔转变为白形态，防御力上升了，攻击力下降了，回复了%d点血量\n", round, hit - origin_hit);
@@ -512,45 +510,132 @@ private:
     enum { ATK_EVERY_ROUND = 3 };
 };
 
+enum class Character : int {
+    KIANA,     // 琪亚娜
+    MEI,       // 芽衣
+    BRONYA,    // 布洛妮娅
+    HIMEKO,    // 姬子
+    RITA,      // 丽塔
+    SAKURA,    // 八重樱&卡莲
+    CORVUS,    // 渡鸦
+    THERESA,   // 德莉莎
+    OLENYEVA,  // 萝莎莉娅&莉莉娅
+    SEELE,     // 希尔
+    DURANDAL,  // 幽兰黛尔
+    FU_HUA,    // 符华
+    NUM_OF_CHARACTER
+};
+
+Player*
+GetPlayer(const Character& character) {
+    // clang-format off
+    switch (character) {
+    case Character::KIANA:    return new Kiana;
+    case Character::MEI:      return new Mei;
+    case Character::BRONYA:   return new Bronya;
+    case Character::HIMEKO:   return new Himeko;
+    case Character::RITA:     return new Rita;
+    case Character::SAKURA:   return new Sakura;
+    case Character::CORVUS:   return new Corvus;
+    case Character::THERESA:  return new Theresa;
+    case Character::OLENYEVA: return new Olenyeva;
+    case Character::SEELE:    return new Seele;
+    case Character::DURANDAL: return new Durandal;
+    case Character::FU_HUA:   return new FuHua;
+    default: abort();
+    }
+    // clang-format on
+}
+
 void
 Simulation() {
 #if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
     const int times = 1;
 #else
-    const int times = 1000000;
+    const int times = 10000;
 #endif
 
-    int p0_win = 0;
-    int p1_win = 0;
+    const auto num_of_character = static_cast<std::underlying_type<Character>::type>(Character::NUM_OF_CHARACTER);
 
-    for (int i = 0; i < times; ++i) {
-        // Olenyeva p0;
-        // Kiana p1;
+    const Character characters[num_of_character] = {
+        Character::KIANA,
+        Character::MEI,
+        Character::BRONYA,
+        Character::HIMEKO,
+        Character::RITA,
+        Character::SAKURA,
+        Character::CORVUS,
+        Character::THERESA,
+        Character::OLENYEVA,
+        Character::SEELE,
+        Character::DURANDAL,
+        Character::FU_HUA,
+    };
 
-        Corvus p0;
-        Mei p1;
+    for (int j = 0; j < num_of_character; ++j) {
+        for (int i = j + 1; i < num_of_character; ++i) {
+            Player* player_0 = GetPlayer(characters[j]);
+            Player* player_1 = GetPlayer(characters[i]);
 
-        // Sakura p0;
-        // Seele p1;
+            int p0_win = 0;
+            int p1_win = 0;
 
-        for (int round = 1;; ++round) {
-            const auto p1_status = p1.Attack(round, p0);
-            if (p1_status != Player::AttackResult::ALL_ALIVE) {
-                if (p1_status == Player::AttackResult::DEFENDER_DEAD) p1_win++;
-                if (p1_status == Player::AttackResult::ATTACKER_DEAD) p0_win++;
-                break;
+            if (player_0->spd > player_1->spd) {
+                for (int k = 0; k < times; ++k) {
+                    Player* p_0 = GetPlayer(characters[j]);
+                    Player* p_1 = GetPlayer(characters[i]);
+
+                    for (int round = 1;; ++round) {
+                        const auto p0_status = p_0->Attack(round, *p_1);
+                        if (p0_status != Player::AttackResult::ALL_ALIVE) {
+                            if (p0_status == Player::AttackResult::DEFENDER_DEAD) p0_win++;
+                            if (p0_status == Player::AttackResult::ATTACKER_DEAD) p1_win++;
+                            break;
+                        }
+
+                        const auto p1_status = p_1->Attack(round, *p_0);
+                        if (p1_status != Player::AttackResult::ALL_ALIVE) {
+                            if (p1_status == Player::AttackResult::DEFENDER_DEAD) p1_win++;
+                            if (p1_status == Player::AttackResult::ATTACKER_DEAD) p0_win++;
+                            break;
+                        }
+                    }
+
+                    delete p_0;
+                    delete p_1;
+                }
+            } else {
+                for (int k = 0; k < times; ++k) {
+                    Player* p_0 = GetPlayer(characters[j]);
+                    Player* p_1 = GetPlayer(characters[i]);
+
+                    for (int round = 1;; ++round) {
+                        const auto p1_status = p_1->Attack(round, *p_0);
+                        if (p1_status != Player::AttackResult::ALL_ALIVE) {
+                            if (p1_status == Player::AttackResult::DEFENDER_DEAD) p1_win++;
+                            if (p1_status == Player::AttackResult::ATTACKER_DEAD) p0_win++;
+                            break;
+                        }
+
+                        const auto p0_status = p_0->Attack(round, *p_1);
+                        if (p0_status != Player::AttackResult::ALL_ALIVE) {
+                            if (p0_status == Player::AttackResult::DEFENDER_DEAD) p0_win++;
+                            if (p0_status == Player::AttackResult::ATTACKER_DEAD) p1_win++;
+                            break;
+                        }
+                    }
+
+                    delete p_0;
+                    delete p_1;
+                }
             }
 
-            const auto p0_status = p0.Attack(round, p1);
-            if (p0_status != Player::AttackResult::ALL_ALIVE) {
-                if (p0_status == Player::AttackResult::DEFENDER_DEAD) p0_win++;
-                if (p0_status == Player::AttackResult::ATTACKER_DEAD) p1_win++;
-                break;
-            }
+            printf("%s vs %s:\n    胜率: %8.4f%% / %8.4f%%\n", player_0->name.c_str(), player_1->name.c_str(), static_cast<double>(p0_win) / static_cast<double>(times) * 100., (1.f - static_cast<double>(p0_win) / static_cast<double>(times)) * 100.);
+
+            delete player_0;
+            delete player_1;
         }
     }
-
-    printf("P0 Win Ratio: %.4f%%\n", static_cast<double>(p0_win) / static_cast<double>(times) * 100.);
 }
 
 int
