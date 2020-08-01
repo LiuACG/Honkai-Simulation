@@ -6,18 +6,20 @@
 #define ENABLE_LOG 1
 
 #if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
-#define LOG(fmt, ...) printf(fmt, __VA_ARGS__)
+#    define LOG(fmt, ...) printf(fmt, __VA_ARGS__)
 #else
-#define LOG(fmt, ...)
+#    define LOG(fmt, ...)
 #endif
 
-static float GetRandom() {
+static float
+GetRandom() {
     static thread_local std::mt19937 re(std::random_device{}());
     static thread_local std::uniform_real_distribution<float> rnd(0.f, 1.f);
     return rnd(re);
 }
 
-static int GetRandom(const int min_value, const int max_value) {
+static int
+GetRandom(const int min_value, const int max_value) {
     static thread_local std::mt19937 re(std::random_device{}());
     return std::uniform_int_distribution<int>{min_value, max_value}(re);
 }
@@ -32,11 +34,9 @@ public:
 
     Player() = default;
 
-    Player(const int hit, const int def, const int atk, const int spd, std::string name)
-        : name(std::move(name)), hit(hit), def(def), atk(atk), spd(spd) {
-    }
+    Player(const int hit, const int def, const int atk, const int spd, std::string name) : name(std::move(name)), hit(hit), def(def), atk(atk), spd(spd) {}
 
-    Player(const Player& other) = default;
+    Player(const Player& other)     = default;
     Player(Player&& other) noexcept = default;
     Player& operator=(const Player& other) = default;
     Player& operator=(Player&& other) noexcept = default;
@@ -62,8 +62,7 @@ public:
     [[nodiscard]] bool IsHit() const { return GetRandom() <= hit_rate; }
 
     [[nodiscard]] bool GetAndRefreshCharmState() {
-        if (buff_charm == 0)
-            return true;
+        if (buff_charm == 0) return true;
         return buff_charm-- == 0;
     }
 
@@ -75,7 +74,7 @@ public:
     int spd = 0;
 
     int buff_opponent = 0;
-    int buff_charm = 0;
+    int buff_charm    = 0;
 
     bool is_group = false;
 
@@ -84,8 +83,7 @@ public:
 
 class Kiana final : public Player {
 public:
-    Kiana() : Player(100, 11, 24, 23, "琪亚娜") {
-    }
+    Kiana() : Player(100, 11, 24, 23, "琪亚娜") {}
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -98,8 +96,7 @@ public:
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             const auto result = defender.DoUlt(round, *this, atk + defender.def, "吃我一矛！");
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
 
             if (GetRandom() <= 0.35f) {
                 LOG("回合%d %s 因为【音浪~太强~】技能效果进入了眩晕状态\n", round, name.c_str());
@@ -107,8 +104,7 @@ public:
             }
         } else {
             const auto result = defender.DoAtk(round, *this, atk - defender.def);
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
         }
 
         return AttackResult::ALL_ALIVE;
@@ -122,8 +118,7 @@ private:
 
 class Mei final : public Player {
 public:
-    Mei() : Player(100, 12, 22, 30, "芽衣") {
-    }
+    Mei() : Player(100, 12, 22, 30, "芽衣") {}
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -136,13 +131,11 @@ public:
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 5; ++i) {
                 const auto result = defender.DoUlt(round, *this, 3, "雷电家的龙女仆");
-                if (result != AttackResult::ALL_ALIVE)
-                    return result;
+                if (result != AttackResult::ALL_ALIVE) return result;
             }
         } else {
             const auto result = defender.DoAtk(round, *this, atk - defender.def);
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
 
             if (!is_charm && GetRandom() <= 0.3f) {
                 LOG("回合%d %s 使用了技能：【崩坏世界的歌姬】麻痹对方一回合\n", round, name.c_str());
@@ -159,8 +152,7 @@ private:
 
 class Bronya final : public Player {
 public:
-    Bronya() : Player(100, 10, 21, 20, "布洛妮娅") {
-    }
+    Bronya() : Player(100, 10, 21, 20, "布洛妮娅") {}
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -172,19 +164,16 @@ public:
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             const auto result = defender.DoUlt(round, *this, GetRandom(1, 100), "摩托拜客哒！");
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
         } else {
             const auto result = defender.DoAtk(round, *this, atk - defender.def);
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
 
             if (!is_charm && GetRandom() < 0.25f) {
                 for (int i = 0; i < 4; ++i) {
                     LOG("回合%d %s 使用了技能：【天使重构】\n", round, name.c_str());
                     const auto ex_result = defender.DoAtk(round, *this, 12 - defender.def);
-                    if (ex_result != AttackResult::ALL_ALIVE)
-                        return ex_result;
+                    if (ex_result != AttackResult::ALL_ALIVE) return ex_result;
                 }
             }
         }
@@ -229,8 +218,7 @@ private:
 
 class Rita final : public Player {
 public:
-    Rita() : Player(100, 11, 26, 17, "丽塔") {
-    }
+    Rita() : Player(100, 11, 26, 17, "丽塔") {}
 
     AttackResult Attack(const int round, Player& defender) override {
         if (buff_opponent) {
@@ -246,31 +234,26 @@ public:
                 is_skill_activate_ = true;
             }
 
-            defender.hit = std::min(100, defender.hit + 4);
+            defender.hit        = std::min(100, defender.hit + 4);
             defender.buff_charm = 2;
         } else {
             int current_round_atk = atk;
             if (GetRandom() < 0.35f) {
                 current_round_atk = std::max(0, current_round_atk - 3);
-                defender.atk = std::max(0, defender.atk - 4);
+                defender.atk      = std::max(0, defender.atk - 4);
                 LOG("回合%d %s 使用了技能：【女仆的温柔清理】使 %s 攻击力永久下降4点\n", round, name.c_str(), defender.name.c_str());
             }
 
             const auto result = defender.DoAtk(round, *this, current_round_atk - defender.def);
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
         }
 
         return AttackResult::ALL_ALIVE;
     }
 
-    AttackResult DoAtk(const int round, Player& attacker, const int atk) override {
-        return Player::DoAtk(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk);
-    }
+    AttackResult DoAtk(const int round, Player& attacker, const int atk) override { return Player::DoAtk(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk); }
 
-    AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name) override {
-        return Player::DoUlt(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk, skill_name);
-    }
+    AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name) override { return Player::DoUlt(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk, skill_name); }
 
 private:
     enum { ATK_EVERY_ROUND = 4 };
@@ -280,9 +263,7 @@ private:
 
 class Sakura final : public Player {
 public:
-    Sakura() : Player(100, 9, 20, 18, "八重樱&卡莲") {
-        is_group = true;
-    }
+    Sakura() : Player(100, 9, 20, 18, "八重樱&卡莲") { is_group = true; }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -299,12 +280,10 @@ public:
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             const auto result = defender.DoUlt(round, *this, 25, "卡莲的饭团");
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
         } else {
             const auto result = defender.DoAtk(round, *this, atk - defender.def);
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
         }
 
         return AttackResult::ALL_ALIVE;
@@ -316,8 +295,7 @@ private:
 
 class Corvus final : public Player {
 public:
-    Corvus() : Player(100, 14, 23, 14, "渡鸦") {
-    }
+    Corvus() : Player(100, 14, 23, 14, "渡鸦") {}
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -336,13 +314,11 @@ public:
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 7; ++i) {
                 const auto result = defender.DoUlt(round, *this, static_cast<int>(std::round(static_cast<float>(16 - defender.def) * gan)), "别墅小岛");
-                if (result != AttackResult::ALL_ALIVE)
-                    return result;
+                if (result != AttackResult::ALL_ALIVE) return result;
             }
         } else {
             const auto result = defender.DoAtk(round, *this, static_cast<int>(std::round(static_cast<float>(atk - defender.def) * gan)));
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
         }
 
         return AttackResult::ALL_ALIVE;
@@ -354,9 +330,7 @@ private:
 
 class Theresa final : public Player {
 public:
-    Theresa() : Player(100, 12, 19, 22, "德莉莎") {
-        is_group = true;
-    }
+    Theresa() : Player(100, 12, 19, 22, "德莉莎") { is_group = true; }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -369,13 +343,11 @@ public:
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 5; ++i) {
                 const auto result = defender.DoUlt(round, *this, 16 - defender.def, "在线踢人");
-                if (result != AttackResult::ALL_ALIVE)
-                    return result;
+                if (result != AttackResult::ALL_ALIVE) return result;
             }
         } else {
             const auto result = defender.DoAtk(round, *this, atk - defender.def);
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
 
             if (!is_charm && GetRandom() <= 0.3f) {
                 LOG("回合%d %s 使用了技能：【血犹大第一可爱】降低了对方5点的防御\n", round, name.c_str());
@@ -392,9 +364,7 @@ private:
 
 class Olenyeva final : public Player {
 public:
-    Olenyeva() : Player(100, 10, 18, 10, "萝莎莉娅&莉莉娅") {
-        is_group = true;
-    }
+    Olenyeva() : Player(100, 10, 18, 10, "萝莎莉娅&莉莉娅") { is_group = true; }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -420,7 +390,7 @@ public:
         if (hit <= 0) {
             if (buff_charm == 0 && resurrection_stone_ > 0) {
                 LOG("回合%d %s 使用了技能：【96度生命之水】并恢复至20点血量\n", round, name.c_str());
-                hit = 20;
+                hit   = 20;
                 boom_ = 1;
                 --resurrection_stone_;
                 return AttackResult::ALL_ALIVE;
@@ -438,7 +408,7 @@ public:
         if (hit <= 0) {
             if (buff_charm == 0 && resurrection_stone_ > 0) {
                 LOG("回合%d %s 使用了技能：【96度生命之水】并恢复至20点血量\n", round, name.c_str());
-                hit = 20;
+                hit   = 20;
                 boom_ = 1;
                 --resurrection_stone_;
                 return AttackResult::ALL_ALIVE;
@@ -449,15 +419,13 @@ public:
     }
 
 private:
-    int boom_ = 0;
+    int boom_               = 0;
     int resurrection_stone_ = 1;
 };
 
 class Seele final : public Player {
 public:
-    Seele() : Player(100, 13, 23, 26, "希儿") {
-        is_group = true;
-    }
+    Seele() : Player(100, 13, 23, 26, "希儿") { is_group = true; }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -466,7 +434,8 @@ public:
         if (is_charm) {
             if (status_ == 0) {
                 const int origin_hit = hit;
-                hit = std::min(100, hit + static_cast<int>(GetRandom() * 14 + 1));
+                
+                hit                  = std::min(100, hit + static_cast<int>(GetRandom() * 14 + 1));
                 def += 5;
                 atk -= 10;
                 LOG("回合%d 希尔转变为白形态，防御力上升了，攻击力下降了，回复了%d点血量\n", round, hit - origin_hit);
@@ -486,14 +455,12 @@ public:
     }
 
 private:
-    int status_ = 0; // 0 是白希，1是黑希
+    int status_ = 0;  // 0 是白希，1是黑希
 };
 
 class Durandal final : public Player {
 public:
-    Durandal() : Player(100, 10, 19, 15, "幽兰黛尔&史丹") {
-        is_group = true;
-    }
+    Durandal() : Player(100, 10, 19, 15, "幽兰黛尔&史丹") { is_group = true; }
 
     AttackResult Attack(const int round, Player& defender) override {
         atk += 3;
@@ -518,8 +485,7 @@ public:
 
 class FuHua final : public Player {
 public:
-    FuHua() : Player(100, 15, 17, 16, "符华") {
-    }
+    FuHua() : Player(100, 15, 17, 16, "符华") {}
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -531,14 +497,12 @@ public:
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             const auto result = defender.DoUlt(round, *this, 18, "形之笔墨");
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
 
             defender.hit_rate = std::max(0.f, defender.hit_rate - 0.25f);
         } else {
             const auto result = defender.DoAtk(round, *this, atk);
-            if (result != AttackResult::ALL_ALIVE)
-                return result;
+            if (result != AttackResult::ALL_ALIVE) return result;
         }
 
         return AttackResult::ALL_ALIVE;
@@ -548,7 +512,8 @@ private:
     enum { ATK_EVERY_ROUND = 3 };
 };
 
-void Simulation() {
+void
+Simulation() {
 #if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
     const int times = 1;
 #else
@@ -568,7 +533,7 @@ void Simulation() {
         // Sakura p0;
         // Seele p1;
 
-        for (int round = 1; ; ++round) {
+        for (int round = 1;; ++round) {
             const auto p1_status = p1.Attack(round, p0);
             if (p1_status != Player::AttackResult::ALL_ALIVE) {
                 if (p1_status == Player::AttackResult::DEFENDER_DEAD) p1_win++;
@@ -588,12 +553,13 @@ void Simulation() {
     printf("P0 Win Ratio: %.4f%%\n", static_cast<double>(p0_win) / static_cast<double>(times) * 100.);
 }
 
-void Sim2() {
+void
+Sim2() {
     const float a = 1.9f;
     const float b = 3.4f;
     const float p = 0.708430f;
 
-    const int times = 1000000;
+    const int times         = 1000000;
     const int total_tickets = 10;
     for (int i = 0; i <= total_tickets; ++i) {
         int cnt = 0;
