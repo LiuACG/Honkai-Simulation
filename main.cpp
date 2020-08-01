@@ -49,14 +49,14 @@ public:
     virtual AttackResult DoAtk(const int round, const std::shared_ptr<Player>& attacker, const int atk) {
         const int acc_atk = attacker->IsHit() ? std::max(0, atk) : 0;
         hit -= acc_atk;
-        LOG("回合%d %s 对 %s 普攻，造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
+        LOG("回合%d %s 对 %s 普攻，造成%d点伤害，%s 剩余血量 %d\n", round, attacker->name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
         return hit <= 0 ? AttackResult::DEFENDER_DEAD : AttackResult::ALL_ALIVE;
     }
 
     virtual AttackResult DoUlt(const int round, const std::shared_ptr<Player>& attacker, const int atk, const std::string& skill_name) {
         const int acc_atk = attacker->IsHit() ? atk : 0;
         hit -= acc_atk;
-        LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
+        LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker->name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
         return hit <= 0 ? AttackResult::DEFENDER_DEAD : AttackResult::ALL_ALIVE;
     }
 
@@ -382,7 +382,7 @@ public:
     AttackResult DoAtk(const int round, const std::shared_ptr<Player>& attacker, const int atk) override {
         const int acc_atk = attacker->IsHit() ? std::max(0, atk) : 0;
         hit -= acc_atk;
-        LOG("回合%d %s 对 %s 普攻，造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
+        LOG("回合%d %s 对 %s 普攻，造成%d点伤害，%s 剩余血量 %d\n", round, attacker->name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
 
         if (hit <= 0) {
             if (buff_charm == 0 && resurrection_stone_ > 0) {
@@ -400,7 +400,7 @@ public:
     AttackResult DoUlt(const int round, const std::shared_ptr<Player>& attacker, const int atk, const std::string& skill_name) override {
         const int acc_atk = attacker->IsHit() ? atk : 0;
         hit -= acc_atk;
-        LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
+        LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker->name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
 
         if (hit <= 0) {
             if (buff_charm == 0 && resurrection_stone_ > 0) {
@@ -630,9 +630,75 @@ Simulation() {
     }
 }
 
+void
+SimulationSingle(const Character c0, const Character c1) {
+#if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
+    const int times = 1;
+#else
+    const int times = 10000000;
+#endif
+
+    const std::shared_ptr<Player> player_0 = GetPlayer(c0);
+    const std::shared_ptr<Player> player_1 = GetPlayer(c1);
+
+    std::atomic<int32_t> p0_win = 0;
+    std::atomic<int32_t> p1_win = 0;
+
+    if (player_0->spd > player_1->spd) {
+#pragma omp parallel for
+        for (int k = 0; k < times; ++k) {
+            std::shared_ptr<Player> p_0 = GetPlayer(c0);
+            std::shared_ptr<Player> p_1 = GetPlayer(c1);
+
+            for (int round = 1;; ++round) {
+                const auto p0_status = p_0->Attack(round, *p_1);
+                if (p0_status != Player::AttackResult::ALL_ALIVE) {
+                    if (p0_status == Player::AttackResult::DEFENDER_DEAD) ++p0_win;
+                    if (p0_status == Player::AttackResult::ATTACKER_DEAD) ++p1_win;
+                    break;
+                }
+
+                const auto p1_status = p_1->Attack(round, *p_0);
+                if (p1_status != Player::AttackResult::ALL_ALIVE) {
+                    if (p1_status == Player::AttackResult::DEFENDER_DEAD) ++p1_win;
+                    if (p1_status == Player::AttackResult::ATTACKER_DEAD) ++p0_win;
+                    break;
+                }
+            }
+        }
+    }
+    else {
+#pragma omp parallel for
+        for (int k = 0; k < times; ++k) {
+            std::shared_ptr<Player> p_0 = GetPlayer(c0);
+            std::shared_ptr<Player> p_1 = GetPlayer(c1);
+
+            for (int round = 1;; ++round) {
+                const auto p1_status = p_1->Attack(round, *p_0);
+                if (p1_status != Player::AttackResult::ALL_ALIVE) {
+                    if (p1_status == Player::AttackResult::DEFENDER_DEAD) ++p1_win;
+                    if (p1_status == Player::AttackResult::ATTACKER_DEAD) ++p0_win;
+                    break;
+                }
+
+                const auto p0_status = p_0->Attack(round, *p_1);
+                if (p0_status != Player::AttackResult::ALL_ALIVE) {
+                    if (p0_status == Player::AttackResult::DEFENDER_DEAD) ++p0_win;
+                    if (p0_status == Player::AttackResult::ATTACKER_DEAD) ++p1_win;
+                    break;
+                }
+            }
+        }
+    }
+
+    printf("%s vs %s:\n    胜率: %8.4f%% / %8.4f%%\n", player_0->name.c_str(), player_1->name.c_str(), static_cast<double>(p0_win) / static_cast<double>(times) * 100., (1.f - static_cast<double>(p0_win) / static_cast<double>(times)) * 100.);
+
+}
+
 int
 main(int argc, char* argv[]) {
     Simulation();
+    SimulationSingle(Character::RITA, Character::OLENYEVA);
 
     return 0;
 }
