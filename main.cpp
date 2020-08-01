@@ -17,6 +17,11 @@ static float GetRandom() {
     return rnd(re);
 }
 
+static int GetRandom(const int min_value, const int max_value) {
+    static thread_local std::mt19937 re(std::random_device{}());
+    return std::uniform_int_distribution<int>{min_value, max_value}(re);
+}
+
 class Player {
 public:
     enum class AttackResult {
@@ -117,7 +122,8 @@ private:
 
 class Mei final : public Player {
 public:
-    Mei() : Player(100, 12, 22, 30, "芽衣") {}
+    Mei() : Player(100, 12, 22, 30, "芽衣") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         if (buff_opponent) {
@@ -151,7 +157,8 @@ private:
 
 class Bronya final : public Player {
 public:
-    Bronya() : Player(100, 10, 21, 20, "布洛妮娅") {}
+    Bronya() : Player(100, 10, 21, 20, "布洛妮娅") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         if (buff_opponent) {
@@ -160,13 +167,22 @@ public:
         }
 
         if (round % ATK_EVERY_ROUND == 0) {
-            const auto result = defender.DoUlt(round, *this, static_cast<int>(GetRandom() * 99.f + 1.f), "摩托拜客哒！");
+            const auto result = defender.DoUlt(round, *this, GetRandom(1, 100), "摩托拜客哒！");
             if (result != AttackResult::ALL_ALIVE)
                 return result;
         } else {
             const auto result = defender.DoAtk(round, *this, atk - defender.def);
             if (result != AttackResult::ALL_ALIVE)
                 return result;
+
+            if (GetRandom() < 0.25f) {
+                for (int i = 0; i < 4; ++i) {
+                    LOG("回合%d %s 使用了技能：【天使重构】\n", round, name.c_str());
+                    const auto ex_result = defender.DoAtk(round, *this, 12 - defender.def);
+                    if (ex_result != AttackResult::ALL_ALIVE)
+                        return ex_result;
+                }
+            }
         }
 
         return AttackResult::ALL_ALIVE;
