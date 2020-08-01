@@ -24,7 +24,7 @@ GetRandom(const int min_value, const int max_value) {
     return std::uniform_int_distribution<int>{min_value, max_value}(re);
 }
 
-class Player {
+class Player : public std::enable_shared_from_this<Player> {
 public:
     enum class AttackResult {
         ATTACKER_DEAD,
@@ -45,15 +45,15 @@ public:
 
     virtual AttackResult Attack(int round, Player& defender) = 0;
 
-    virtual AttackResult DoAtk(const int round, Player& attacker, const int atk) {
-        const int acc_atk = attacker.IsHit() ? std::max(0, atk) : 0;
+    virtual AttackResult DoAtk(const int round, const std::shared_ptr<Player>& attacker, const int atk) {
+        const int acc_atk = attacker->IsHit() ? std::max(0, atk) : 0;
         hit -= acc_atk;
         LOG("回合%d %s 对 %s 普攻，造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
         return hit <= 0 ? AttackResult::DEFENDER_DEAD : AttackResult::ALL_ALIVE;
     }
 
-    virtual AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name) {
-        const int acc_atk = attacker.IsHit() ? atk : 0;
+    virtual AttackResult DoUlt(const int round, const std::shared_ptr<Player>& attacker, const int atk, const std::string& skill_name) {
+        const int acc_atk = attacker->IsHit() ? atk : 0;
         hit -= acc_atk;
         LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
         return hit <= 0 ? AttackResult::DEFENDER_DEAD : AttackResult::ALL_ALIVE;
@@ -93,7 +93,7 @@ public:
         }
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
-            const auto result = defender.DoUlt(round, *this, atk + defender.def, "吃我一矛！");
+            const auto result = defender.DoUlt(round, shared_from_this(), atk + defender.def, "吃我一矛！");
             if (result != AttackResult::ALL_ALIVE) return result;
 
             if (GetRandom() <= 0.35f) {
@@ -101,7 +101,7 @@ public:
                 buff_self_ = 1;
             }
         } else {
-            const auto result = defender.DoAtk(round, *this, atk - defender.def);
+            const auto result = defender.DoAtk(round, shared_from_this(), atk - defender.def);
             if (result != AttackResult::ALL_ALIVE) return result;
         }
 
@@ -128,11 +128,11 @@ public:
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 5; ++i) {
-                const auto result = defender.DoUlt(round, *this, 3, "雷电家的龙女仆");
+                const auto result = defender.DoUlt(round, shared_from_this(), 3, "雷电家的龙女仆");
                 if (result != AttackResult::ALL_ALIVE) return result;
             }
         } else {
-            const auto result = defender.DoAtk(round, *this, atk - defender.def);
+            const auto result = defender.DoAtk(round, shared_from_this(), atk - defender.def);
             if (result != AttackResult::ALL_ALIVE) return result;
 
             if (!is_charm && GetRandom() <= 0.3f) {
@@ -161,16 +161,16 @@ public:
         }
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
-            const auto result = defender.DoUlt(round, *this, GetRandom(1, 100), "摩托拜客哒！");
+            const auto result = defender.DoUlt(round, shared_from_this(), GetRandom(1, 100), "摩托拜客哒！");
             if (result != AttackResult::ALL_ALIVE) return result;
         } else {
-            const auto result = defender.DoAtk(round, *this, atk - defender.def);
+            const auto result = defender.DoAtk(round, shared_from_this(), atk - defender.def);
             if (result != AttackResult::ALL_ALIVE) return result;
 
             if (!is_charm && GetRandom() < 0.25f) {
                 for (int i = 0; i < 4; ++i) {
                     LOG("回合%d %s 使用了技能：【天使重构】\n", round, name.c_str());
-                    const auto ex_result = defender.DoAtk(round, *this, 12 - defender.def);
+                    const auto ex_result = defender.DoAtk(round, shared_from_this(), 12 - defender.def);
                     if (ex_result != AttackResult::ALL_ALIVE) return ex_result;
                 }
             }
@@ -207,7 +207,7 @@ public:
             hit_rate = std::max(0.f, hit_rate - 0.35f);
         }
 
-        return defender.DoAtk(round, *this, (atk - defender.def) * gan);
+        return defender.DoAtk(round, shared_from_this(), (atk - defender.def) * gan);
     }
 
 private:
@@ -242,16 +242,16 @@ public:
                 LOG("回合%d %s 使用了技能：【女仆的温柔清理】使 %s 攻击力永久下降4点\n", round, name.c_str(), defender.name.c_str());
             }
 
-            const auto result = defender.DoAtk(round, *this, current_round_atk - defender.def);
+            const auto result = defender.DoAtk(round, shared_from_this(), current_round_atk - defender.def);
             if (result != AttackResult::ALL_ALIVE) return result;
         }
 
         return AttackResult::ALL_ALIVE;
     }
 
-    AttackResult DoAtk(const int round, Player& attacker, const int atk) override { return Player::DoAtk(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk); }
+    AttackResult DoAtk(const int round, const std::shared_ptr<Player>& attacker, const int atk) override { return Player::DoAtk(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk); }
 
-    AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name) override { return Player::DoUlt(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk, skill_name); }
+    AttackResult DoUlt(const int round, const std::shared_ptr<Player>& attacker, const int atk, const std::string& skill_name) override { return Player::DoUlt(round, attacker, is_skill_activate_ ? static_cast<int>(std::round(static_cast<float>(atk) * 0.4f)) : atk, skill_name); }
 
 private:
     enum { ATK_EVERY_ROUND = 4 };
@@ -277,10 +277,10 @@ public:
         }
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
-            const auto result = defender.DoUlt(round, *this, 25, "卡莲的饭团");
+            const auto result = defender.DoUlt(round, shared_from_this(), 25, "卡莲的饭团");
             if (result != AttackResult::ALL_ALIVE) return result;
         } else {
-            const auto result = defender.DoAtk(round, *this, atk - defender.def);
+            const auto result = defender.DoAtk(round, shared_from_this(), atk - defender.def);
             if (result != AttackResult::ALL_ALIVE) return result;
         }
 
@@ -311,11 +311,11 @@ public:
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 7; ++i) {
-                const auto result = defender.DoUlt(round, *this, static_cast<int>(std::round(static_cast<float>(16 - defender.def) * gan)), "别墅小岛");
+                const auto result = defender.DoUlt(round, shared_from_this(), static_cast<int>(std::round(static_cast<float>(16 - defender.def) * gan)), "别墅小岛");
                 if (result != AttackResult::ALL_ALIVE) return result;
             }
         } else {
-            const auto result = defender.DoAtk(round, *this, static_cast<int>(std::round(static_cast<float>(atk - defender.def) * gan)));
+            const auto result = defender.DoAtk(round, shared_from_this(), static_cast<int>(std::round(static_cast<float>(atk - defender.def) * gan)));
             if (result != AttackResult::ALL_ALIVE) return result;
         }
 
@@ -340,11 +340,11 @@ public:
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 5; ++i) {
-                const auto result = defender.DoUlt(round, *this, 16 - defender.def, "在线踢人");
+                const auto result = defender.DoUlt(round, shared_from_this(), 16 - defender.def, "在线踢人");
                 if (result != AttackResult::ALL_ALIVE) return result;
             }
         } else {
-            const auto result = defender.DoAtk(round, *this, atk - defender.def);
+            const auto result = defender.DoAtk(round, shared_from_this(), atk - defender.def);
             if (result != AttackResult::ALL_ALIVE) return result;
 
             if (!is_charm && GetRandom() <= 0.3f) {
@@ -365,8 +365,6 @@ public:
     Olenyeva() : Player(100, 10, 18, 10, "萝莎莉娅&莉莉娅") { is_group = true; }
 
     AttackResult Attack(const int round, Player& defender) override {
-        const bool is_charm = GetAndRefreshCharmState();
-
         if (buff_opponent) {
             --buff_opponent;
             return AttackResult::ALL_ALIVE;
@@ -374,14 +372,14 @@ public:
 
         if (boom_ > 0) {
             --boom_;
-            defender.DoUlt(round, *this, GetRandom() <= 0.5f ? 233 : 50, "变成星星吧！");
+            defender.DoUlt(round, shared_from_this(), GetRandom() <= 0.5f ? 233 : 50, "变成星星吧！");
         }
 
-        return defender.DoAtk(round, *this, atk - defender.def);
+        return defender.DoAtk(round, shared_from_this(), atk - defender.def);
     }
 
-    AttackResult DoAtk(const int round, Player& attacker, const int atk) override {
-        const int acc_atk = attacker.IsHit() ? std::max(0, atk) : 0;
+    AttackResult DoAtk(const int round, const std::shared_ptr<Player>& attacker, const int atk) override {
+        const int acc_atk = attacker->IsHit() ? std::max(0, atk) : 0;
         hit -= acc_atk;
         LOG("回合%d %s 对 %s 普攻，造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
 
@@ -398,8 +396,8 @@ public:
         return AttackResult::ALL_ALIVE;
     }
 
-    AttackResult DoUlt(const int round, Player& attacker, const int atk, const std::string& skill_name) override {
-        const int acc_atk = attacker.IsHit() ? atk : 0;
+    AttackResult DoUlt(const int round, const std::shared_ptr<Player>& attacker, const int atk, const std::string& skill_name) override {
+        const int acc_atk = attacker->IsHit() ? atk : 0;
         hit -= acc_atk;
         LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
 
@@ -449,7 +447,7 @@ public:
             return AttackResult::ALL_ALIVE;
         }
 
-        return defender.DoAtk(round, *this, atk - defender.def);
+        return defender.DoAtk(round, shared_from_this(), atk - defender.def);
     }
 
 private:
@@ -468,13 +466,13 @@ public:
             return AttackResult::ALL_ALIVE;
         }
 
-        return defender.DoAtk(round, *this, atk - defender.def);
+        return defender.DoAtk(round, shared_from_this(), atk - defender.def);
     }
 
-    AttackResult DoUlt(int round, Player& attacker, const int atk, const std::string& name) override {
+    AttackResult DoUlt(int round, const std::shared_ptr<Player>& attacker, const int atk, const std::string& name) override {
         if (buff_charm == 0 && GetRandom() < 0.16f) {
-            attacker.hit -= 30;
-            return attacker.hit <= 0 ? AttackResult::ATTACKER_DEAD : AttackResult::ALL_ALIVE;
+            attacker->hit -= 30;
+            return attacker->hit <= 0 ? AttackResult::ATTACKER_DEAD : AttackResult::ALL_ALIVE;
         }
         hit -= atk;
         return hit <= 0 ? AttackResult::DEFENDER_DEAD : AttackResult::ALL_ALIVE;
@@ -494,12 +492,12 @@ public:
         }
 
         if (!is_charm && round % ATK_EVERY_ROUND == 0) {
-            const auto result = defender.DoUlt(round, *this, 18, "形之笔墨");
+            const auto result = defender.DoUlt(round, shared_from_this(), 18, "形之笔墨");
             if (result != AttackResult::ALL_ALIVE) return result;
 
             defender.hit_rate = std::max(0.f, defender.hit_rate - 0.25f);
         } else {
-            const auto result = defender.DoAtk(round, *this, atk);
+            const auto result = defender.DoAtk(round, shared_from_this(), atk);
             if (result != AttackResult::ALL_ALIVE) return result;
         }
 
@@ -526,22 +524,22 @@ enum class Character : int {
     NUM_OF_CHARACTER
 };
 
-Player*
+std::shared_ptr<Player>
 GetPlayer(const Character& character) {
     // clang-format off
     switch (character) {
-    case Character::KIANA:    return new Kiana;
-    case Character::MEI:      return new Mei;
-    case Character::BRONYA:   return new Bronya;
-    case Character::HIMEKO:   return new Himeko;
-    case Character::RITA:     return new Rita;
-    case Character::SAKURA:   return new Sakura;
-    case Character::CORVUS:   return new Corvus;
-    case Character::THERESA:  return new Theresa;
-    case Character::OLENYEVA: return new Olenyeva;
-    case Character::SEELE:    return new Seele;
-    case Character::DURANDAL: return new Durandal;
-    case Character::FU_HUA:   return new FuHua;
+    case Character::KIANA:    return std::make_shared<Kiana>();
+    case Character::MEI:      return std::make_shared<Mei>();
+    case Character::BRONYA:   return std::make_shared<Bronya>();
+    case Character::HIMEKO:   return std::make_shared<Himeko>();
+    case Character::RITA:     return std::make_shared<Rita>();
+    case Character::SAKURA:   return std::make_shared<Sakura>();
+    case Character::CORVUS:   return std::make_shared<Corvus>();
+    case Character::THERESA:  return std::make_shared<Theresa>();
+    case Character::OLENYEVA: return std::make_shared<Olenyeva>();
+    case Character::SEELE:    return std::make_shared<Seele>();
+    case Character::DURANDAL: return std::make_shared<Durandal>();
+    case Character::FU_HUA:   return std::make_shared<FuHua>();
     default: abort();
     }
     // clang-format on
@@ -574,16 +572,16 @@ Simulation() {
 
     for (int j = 0; j < num_of_character; ++j) {
         for (int i = j + 1; i < num_of_character; ++i) {
-            Player* player_0 = GetPlayer(characters[j]);
-            Player* player_1 = GetPlayer(characters[i]);
+            const std::shared_ptr<Player> player_0 = GetPlayer(characters[j]);
+            const std::shared_ptr<Player> player_1 = GetPlayer(characters[i]);
 
             int p0_win = 0;
             int p1_win = 0;
 
             if (player_0->spd > player_1->spd) {
                 for (int k = 0; k < times; ++k) {
-                    Player* p_0 = GetPlayer(characters[j]);
-                    Player* p_1 = GetPlayer(characters[i]);
+                    std::shared_ptr<Player> p_0 = GetPlayer(characters[j]);
+                    std::shared_ptr<Player> p_1 = GetPlayer(characters[i]);
 
                     for (int round = 1;; ++round) {
                         const auto p0_status = p_0->Attack(round, *p_1);
@@ -600,14 +598,11 @@ Simulation() {
                             break;
                         }
                     }
-
-                    delete p_0;
-                    delete p_1;
                 }
             } else {
                 for (int k = 0; k < times; ++k) {
-                    Player* p_0 = GetPlayer(characters[j]);
-                    Player* p_1 = GetPlayer(characters[i]);
+                    std::shared_ptr<Player> p_0 = GetPlayer(characters[j]);
+                    std::shared_ptr<Player> p_1 = GetPlayer(characters[i]);
 
                     for (int round = 1;; ++round) {
                         const auto p1_status = p_1->Attack(round, *p_0);
@@ -624,16 +619,10 @@ Simulation() {
                             break;
                         }
                     }
-
-                    delete p_0;
-                    delete p_1;
                 }
             }
 
             printf("%s vs %s:\n    胜率: %8.4f%% / %8.4f%%\n", player_0->name.c_str(), player_1->name.c_str(), static_cast<double>(p0_win) / static_cast<double>(times) * 100., (1.f - static_cast<double>(p0_win) / static_cast<double>(times)) * 100.);
-
-            delete player_0;
-            delete player_1;
         }
     }
 }
