@@ -282,7 +282,8 @@ private:
 
 class Sakura final : public Player {
 public:
-    Sakura() : Player(100, 9, 20, 18, "八重樱&卡莲") {}
+    Sakura() : Player(100, 9, 20, 18, "八重樱&卡莲") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -316,7 +317,8 @@ private:
 
 class Corvus final : public Player {
 public:
-    Corvus() : Player(100, 14, 23, 14, "渡鸦") {}
+    Corvus() : Player(100, 14, 23, 14, "渡鸦") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -353,7 +355,8 @@ private:
 
 class Theresa final : public Player {
 public:
-    Theresa() : Player(100, 12, 19, 22, "德莉莎") {}
+    Theresa() : Player(100, 12, 19, 22, "德莉莎") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -389,7 +392,8 @@ private:
 
 class Olenyeva final : public Player {
 public:
-    Olenyeva() : Player(100, 10, 18, 10, "萝莎莉娅&莉莉娅") {}
+    Olenyeva() : Player(100, 10, 18, 10, "萝莎莉娅&莉莉娅") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -450,7 +454,8 @@ private:
 
 class Seele final : public Player {
 public:
-    Seele() : Player(100, 13, 23, 26, "希儿") {}
+    Seele() : Player(100, 13, 23, 26, "希儿") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
@@ -484,7 +489,8 @@ private:
 
 class Durandal final : public Player {
 public:
-    Durandal() : Player(100, 10, 19, 15, "幽兰黛尔&史丹") {}
+    Durandal() : Player(100, 10, 19, 15, "幽兰黛尔&史丹") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         atk += 3;
@@ -509,7 +515,8 @@ public:
 
 class FuHua final : public Player {
 public:
-    FuHua() : Player(100, 15, 17, 16, "符华") {}
+    FuHua() : Player(100, 15, 17, 16, "符华") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
         const bool is_charm = GetAndRefreshCharmState();
