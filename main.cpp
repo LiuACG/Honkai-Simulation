@@ -401,9 +401,7 @@ public:
 
         if (boom_ > 0) {
             --boom_;
-            if (!is_charm) {
-                defender.DoUlt(round, *this, GetRandom() <= 0.5f ? 233 : 50, "变成星星吧！", true);
-            }
+            defender.DoUlt(round, *this, GetRandom() <= 0.5f ? 233 : 50, "变成星星吧！", true);
         }
 
         return defender.DoAtk(round, *this, atk - defender.def);
@@ -415,7 +413,7 @@ public:
         LOG("回合%d %s 对 %s 普攻，造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
 
         if (hit <= 0) {
-            if (resurrection_stone_ > 0) {
+            if (buff_charm == 0 && resurrection_stone_ > 0) {
                 LOG("回合%d %s 使用了技能：【96度生命之水】并恢复至20点血量\n", round, name.c_str());
                 hit = 20;
                 boom_ = 1;
@@ -433,7 +431,7 @@ public:
         LOG("回合%d %s 使用了技能：【%s】对 %s 造成%d点伤害，%s 剩余血量 %d\n", round, attacker.name.c_str(), skill_name.c_str(), name.c_str(), acc_atk, name.c_str(), hit);
 
         if (hit <= 0) {
-            if (resurrection_stone_ > 0) {
+            if (buff_charm == 0 && resurrection_stone_ > 0) {
                 LOG("回合%d %s 使用了技能：【96度生命之水】并恢复至20点血量\n", round, name.c_str());
                 hit = 20;
                 boom_ = 1;
