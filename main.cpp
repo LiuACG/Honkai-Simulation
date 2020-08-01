@@ -209,11 +209,9 @@ public:
         const int gan = is_group ? 2 : 1;
 
         if (round % ATK_EVERY_ROUND == 0) {
-            if (GetRandom() <= 0.35f) {
-                LOG("回合%d %s 使用了技能：【干杯，朋友】攻击力提升了100%%，命中率下降35%%\n", round, name.c_str());
-                atk *= 2;
-                hit_rate = std::max(0.f, hit_rate - 0.35f);
-            }
+            LOG("回合%d %s 使用了技能：【干杯，朋友】攻击力提升了100%%，命中率下降35%%\n", round, name.c_str());
+            atk *= 2;
+            hit_rate = std::max(0.f, hit_rate - 0.35f);
         }
 
         return defender.DoAtk(round, *this, (atk - defender.def) * gan);
