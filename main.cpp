@@ -62,8 +62,8 @@ public:
     [[nodiscard]] bool IsHit() const { return GetRandom() <= hit_rate; }
 
     [[nodiscard]] bool GetAndRefreshCharmState() {
-        if (buff_charm == 0) return true;
-        return buff_charm-- == 0;
+        if (buff_charm == 0) return false;
+        return buff_charm-- != 0;
     }
 
     std::string name;
