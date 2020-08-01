@@ -3,7 +3,7 @@
 #include <thread>
 #include <utility>
 
-#define ENABLE_LOG 0
+#define ENABLE_LOG 1
 
 #if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
 #define LOG(fmt, ...) printf(fmt, __VA_ARGS__)
@@ -71,7 +71,6 @@ public:
     int atk = 0;
     int spd = 0;
 
-    int buff_self = 0;
     int buff_opponent = 0;
     int buff_charm = 0;
 
@@ -82,13 +81,13 @@ public:
 
 class Kiana final : public Player {
 public:
-    Kiana() : Player(100, 11, 24, 23, "琪亚娜") {}
+    Kiana() : Player(100, 11, 24, 23, "琪亚娜") {
+    }
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
+        if (buff_self_ || buff_opponent) {
+            if (buff_self_) --buff_self_;
             if (buff_opponent) --buff_opponent;
-
             return AttackResult::ALL_ALIVE;
         }
 
@@ -99,7 +98,7 @@ public:
 
             if (GetRandom() <= 0.35f) {
                 LOG("回合%d %s 因为【音浪~太强~】技能效果进入了眩晕状态\n", round, name.c_str());
-                buff_self = 1;
+                buff_self_ = 1;
             }
         } else {
             const auto result = defender.DoAtk(round, *this, atk - defender.def);
@@ -111,6 +110,8 @@ public:
     }
 
 private:
+    int buff_self_ = 0;
+
     enum { ATK_EVERY_ROUND = 2 };
 };
 
@@ -119,10 +120,8 @@ public:
     Mei() : Player(100, 12, 22, 30, "芽衣") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -155,10 +154,8 @@ public:
     Bronya() : Player(100, 10, 21, 20, "布洛妮娅") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -188,10 +185,8 @@ public:
     }
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -217,10 +212,8 @@ public:
     Rita() : Player(100, 11, 26, 17, "丽塔") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -264,10 +257,8 @@ public:
     Sakura() : Player(100, 9, 20, 18, "八重樱&卡莲") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -298,10 +289,8 @@ public:
     Corvus() : Player(100, 14, 23, 14, "渡鸦") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -337,10 +326,8 @@ public:
     AttackResult Attack(const int round, Player& defender) override {
         const bool skill_available = RefreshSkillAvailableStatus();
 
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -373,10 +360,8 @@ public:
     Olenyeva() : Player(100, 10, 18, 10, "萝莎莉娅&莉莉娅") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -436,10 +421,8 @@ public:
     AttackResult Attack(const int round, Player& defender) override {
         status_ ^= 1;
 
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -469,10 +452,8 @@ public:
     AttackResult Attack(const int round, Player& defender) override {
         atk += 3;
 
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
@@ -494,10 +475,8 @@ public:
     FuHua() : Player(100, 15, 17, 16, "符华") {}
 
     AttackResult Attack(const int round, Player& defender) override {
-        if (buff_self || buff_opponent) {
-            if (buff_self) --buff_self;
-            if (buff_opponent) --buff_opponent;
-
+        if (buff_opponent) {
+            --buff_opponent;
             return AttackResult::ALL_ALIVE;
         }
 
