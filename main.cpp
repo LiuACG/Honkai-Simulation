@@ -3,7 +3,7 @@
 #include <thread>
 #include <utility>
 
-#define ENABLE_LOG 1
+#define ENABLE_LOG 0
 
 #if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
 #    define LOG(fmt, ...) printf(fmt, __VA_ARGS__)
@@ -551,32 +551,6 @@ Simulation() {
     }
 
     printf("P0 Win Ratio: %.4f%%\n", static_cast<double>(p0_win) / static_cast<double>(times) * 100.);
-}
-
-void
-Sim2() {
-    const float a = 1.9f;
-    const float b = 3.4f;
-    const float p = 0.708430f;
-
-    const int times         = 1000000;
-    const int total_tickets = 10;
-    for (int i = 0; i <= total_tickets; ++i) {
-        int cnt = 0;
-        int sum = 0;
-        for (int j = 0; j < times; ++j) {
-            int tickets_avd;
-            if (GetRandom() <= p) {
-                tickets_avd = static_cast<int>(ceil(static_cast<float>(i) * a));
-            } else {
-                tickets_avd = static_cast<int>(ceil(static_cast<float>(total_tickets - i) * b));
-            }
-
-            cnt += (tickets_avd - total_tickets) < 0;
-            sum += tickets_avd;
-        }
-        printf("E(%3d) = %8.4f, %8.4f - %8.4f, LOSS: %.4f%%\n", i, static_cast<float>(sum) / static_cast<float>(times), ceil(static_cast<float>(i) * a), ceil(static_cast<float>(total_tickets - i) * b), static_cast<float>(cnt) / static_cast<float>(times));
-    }
 }
 
 int
