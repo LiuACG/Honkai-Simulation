@@ -363,7 +363,7 @@ public:
             return AttackResult::ALL_ALIVE;
         }
 
-        if (is_charm && round % ATK_EVERY_ROUND == 0) {
+        if (!is_charm && round % ATK_EVERY_ROUND == 0) {
             for (int i = 0; i < 5; ++i) {
                 const auto result = defender.DoUlt(round, *this, 16 - defender.def, "在线踢人");
                 if (result != AttackResult::ALL_ALIVE)
@@ -374,7 +374,7 @@ public:
             if (result != AttackResult::ALL_ALIVE)
                 return result;
 
-            if (is_charm && GetRandom() <= 0.3f) {
+            if (!is_charm && GetRandom() <= 0.3f) {
                 LOG("回合%d %s 使用了技能：【血犹大第一可爱】降低了对方5点的防御\n", round, name.c_str());
                 defender.def = std::max(0, defender.def - 5);
             }
