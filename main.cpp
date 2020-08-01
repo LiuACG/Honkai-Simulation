@@ -34,8 +34,6 @@ public:
 
     Player(const int hit, const int def, const int atk, const int spd, std::string name)
         : name(std::move(name)), hit(hit), def(def), atk(atk), spd(spd) {
-        if (name.find('&') != std::string::npos)
-            is_group = true;
     }
 
     Player(const Player& other) = default;
@@ -283,6 +281,7 @@ private:
 class Sakura final : public Player {
 public:
     Sakura() : Player(100, 9, 20, 18, "八重樱&卡莲") {
+        is_group = true;
     }
 
     AttackResult Attack(const int round, Player& defender) override {
@@ -356,6 +355,7 @@ private:
 class Theresa final : public Player {
 public:
     Theresa() : Player(100, 12, 19, 22, "德莉莎") {
+        is_group = true;
     }
 
     AttackResult Attack(const int round, Player& defender) override {
@@ -393,6 +393,7 @@ private:
 class Olenyeva final : public Player {
 public:
     Olenyeva() : Player(100, 10, 18, 10, "萝莎莉娅&莉莉娅") {
+        is_group = true;
     }
 
     AttackResult Attack(const int round, Player& defender) override {
@@ -455,6 +456,7 @@ private:
 class Seele final : public Player {
 public:
     Seele() : Player(100, 13, 23, 26, "希儿") {
+        is_group = true;
     }
 
     AttackResult Attack(const int round, Player& defender) override {
@@ -490,6 +492,7 @@ private:
 class Durandal final : public Player {
 public:
     Durandal() : Player(100, 10, 19, 15, "幽兰黛尔&史丹") {
+        is_group = true;
     }
 
     AttackResult Attack(const int round, Player& defender) override {
