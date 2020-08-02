@@ -428,7 +428,7 @@ public:
         const bool is_charm = GetAndRefreshCharmState();
 
         status_ ^= 1;
-        if (is_charm) {
+        if (!is_charm) {
             if (status_ == 0) {
                 const int origin_hit = hit;
 
