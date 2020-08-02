@@ -547,97 +547,7 @@ GetPlayer(const Character& character) {
 }
 
 void
-Simulation() {
-#if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
-    const int times = 1;
-#else
-    const int times = 10000000;
-#endif
-
-    const auto num_of_character = static_cast<std::underlying_type<Character>::type>(Character::NUM_OF_CHARACTER);
-
-    const Character characters[num_of_character] = {
-        Character::KIANA,
-        Character::MEI,
-        Character::BRONYA,
-        Character::HIMEKO,
-        Character::RITA,
-        Character::SAKURA,
-        Character::CORVUS,
-        Character::THERESA,
-        Character::OLENYEVA,
-        Character::SEELE,
-        Character::DURANDAL,
-        Character::FU_HUA,
-    };
-
-    for (int j = 0; j < num_of_character; ++j) {
-        for (int i = j + 1; i < num_of_character; ++i) {
-            const std::shared_ptr<Player> player_0 = GetPlayer(characters[j]);
-            const std::shared_ptr<Player> player_1 = GetPlayer(characters[i]);
-
-            std::atomic<int32_t> p0_win = 0;
-            std::atomic<int32_t> p1_win = 0;
-
-            if (player_0->spd > player_1->spd) {
-                #pragma omp parallel for
-                for (int k = 0; k < times; ++k) {
-                    std::shared_ptr<Player> p_0 = GetPlayer(characters[j]);
-                    std::shared_ptr<Player> p_1 = GetPlayer(characters[i]);
-
-                    for (int round = 1;; ++round) {
-                        const auto p0_status = p_0->Attack(round, *p_1);
-                        if (p0_status != Player::AttackResult::ALL_ALIVE) {
-                            if (p0_status == Player::AttackResult::DEFENDER_DEAD) ++p0_win;
-                            if (p0_status == Player::AttackResult::ATTACKER_DEAD) ++p1_win;
-                            break;
-                        }
-
-                        const auto p1_status = p_1->Attack(round, *p_0);
-                        if (p1_status != Player::AttackResult::ALL_ALIVE) {
-                            if (p1_status == Player::AttackResult::DEFENDER_DEAD) ++p1_win;
-                            if (p1_status == Player::AttackResult::ATTACKER_DEAD) ++p0_win;
-                            break;
-                        }
-                    }
-                }
-            } else {
-                #pragma omp parallel for
-                for (int k = 0; k < times; ++k) {
-                    std::shared_ptr<Player> p_0 = GetPlayer(characters[j]);
-                    std::shared_ptr<Player> p_1 = GetPlayer(characters[i]);
-
-                    for (int round = 1;; ++round) {
-                        const auto p1_status = p_1->Attack(round, *p_0);
-                        if (p1_status != Player::AttackResult::ALL_ALIVE) {
-                            if (p1_status == Player::AttackResult::DEFENDER_DEAD) ++p1_win;
-                            if (p1_status == Player::AttackResult::ATTACKER_DEAD) ++p0_win;
-                            break;
-                        }
-
-                        const auto p0_status = p_0->Attack(round, *p_1);
-                        if (p0_status != Player::AttackResult::ALL_ALIVE) {
-                            if (p0_status == Player::AttackResult::DEFENDER_DEAD) ++p0_win;
-                            if (p0_status == Player::AttackResult::ATTACKER_DEAD) ++p1_win;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            printf("%s vs %s:\n    胜率: %8.4f%% / %8.4f%%\n", player_0->name.c_str(), player_1->name.c_str(), static_cast<double>(p0_win) / static_cast<double>(times) * 100., (1.f - static_cast<double>(p0_win) / static_cast<double>(times)) * 100.);
-        }
-    }
-}
-
-void
-SimulationSingle(const Character c0, const Character c1) {
-#if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
-    const int times = 1;
-#else
-    const int times = 10000000;
-#endif
-
+SimulationSingle(const Character c0, const Character c1, const int times) {
     const std::shared_ptr<Player> player_0 = GetPlayer(c0);
     const std::shared_ptr<Player> player_1 = GetPlayer(c1);
 
@@ -645,7 +555,7 @@ SimulationSingle(const Character c0, const Character c1) {
     std::atomic<int32_t> p1_win = 0;
 
     if (player_0->spd > player_1->spd) {
-#pragma omp parallel for
+        #pragma omp parallel for
         for (int k = 0; k < times; ++k) {
             std::shared_ptr<Player> p_0 = GetPlayer(c0);
             std::shared_ptr<Player> p_1 = GetPlayer(c1);
@@ -668,7 +578,7 @@ SimulationSingle(const Character c0, const Character c1) {
         }
     }
     else {
-#pragma omp parallel for
+        #pragma omp parallel for
         for (int k = 0; k < times; ++k) {
             std::shared_ptr<Player> p_0 = GetPlayer(c0);
             std::shared_ptr<Player> p_1 = GetPlayer(c1);
@@ -692,13 +602,44 @@ SimulationSingle(const Character c0, const Character c1) {
     }
 
     printf("%s vs %s:\n    胜率: %8.4f%% / %8.4f%%\n", player_0->name.c_str(), player_1->name.c_str(), static_cast<double>(p0_win) / static_cast<double>(times) * 100., (1.f - static_cast<double>(p0_win) / static_cast<double>(times)) * 100.);
+}
 
+void
+Simulation(const int times) {
+    const auto num_of_character = static_cast<std::underlying_type<Character>::type>(Character::NUM_OF_CHARACTER);
+
+    const Character characters[num_of_character] = {
+        Character::KIANA,
+        Character::MEI,
+        Character::BRONYA,
+        Character::HIMEKO,
+        Character::RITA,
+        Character::SAKURA,
+        Character::CORVUS,
+        Character::THERESA,
+        Character::OLENYEVA,
+        Character::SEELE,
+        Character::DURANDAL,
+        Character::FU_HUA,
+    };
+
+    for (int j = 0; j < num_of_character; ++j) {
+        for (int i = j + 1; i < num_of_character; ++i) {
+            SimulationSingle(characters[j], characters[i], times);
+        }
+    }
 }
 
 int
 main(int argc, char* argv[]) {
-    Simulation();
-    SimulationSingle(Character::RITA, Character::OLENYEVA);
+#if defined(ENABLE_LOG) && (ENABLE_LOG == 1)
+    const int times = 1;
+#else
+    const int times = 10000000;
+#endif
+
+    Simulation(times);
+    SimulationSingle(Character::RITA, Character::OLENYEVA, times);
 
     return 0;
 }
